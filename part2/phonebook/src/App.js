@@ -3,12 +3,16 @@ import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
 import directoryService from './services/BackendService'
+import Notification from './components/Notification'
 
 const App = () => {
   const [ persons, setPersons ] = useState([]) 
   const [ filterName, setFilterName ] = useState('')
   const [ newName, setNewName ] = useState('')
   const [ newNumber, setNewNumber ] = useState('')
+  const [ normalMessage, setNormalMessage ] = useState(null)
+  const [ errorMessage, setErrorMessage ] = useState(null)
+  const [ refreshHook, setRefreshHook ] = useState(0);
 
   const handleNameChange = (event) => {
     //console.log(event.target.value)    
@@ -34,11 +38,19 @@ const App = () => {
           .create(personObject)
           .then(addedPerson => {
             console.log('new person added: ',addedPerson)
+            setNormalMessage(`Added ${addedPerson.name}`)       
+            setTimeout(() => {setNormalMessage(null)}, 5000)
             setPersons(persons.concat(addedPerson))      
             setNewName('')
-            setNewNumber('')
+            setNewNumber('')})
+          .catch(error => {
+            console.log('add error result: ',error)
+            setErrorMessage(`${newName} already exists in the server. Local data has been refreshed.`)       
+            setTimeout(() => {setErrorMessage(null)}, 5000)
+            setRefreshHook(refreshHook+1)
         })
       }
+      
       else {
         if (window.confirm(`${newName} is already added to phonebook. Replace old number with a new one?`)) {
           directoryService
@@ -50,8 +62,7 @@ const App = () => {
               setNewNumber('')
           })
         }
-      }
-        
+      }  
     }
   }
 
@@ -61,24 +72,33 @@ const App = () => {
         .remove(id)
         .then(result =>{
           console.log('delete result: ',result)
-          setPersons(persons.filter(person => person.id !== id))
-        })
+          setPersons(persons.filter(person => person.id !== id))})          
+        .catch(error => {
+          console.log('delete error caught: ',error)
+          setErrorMessage(`Information of ${name} has already been removed from server.`)       
+          setTimeout(() => {setErrorMessage(null)}, 5000)
+          setPersons(persons.filter(person => person.id !== id))    
+      })
     }
   }
 
-  useEffect(() => {
-    console.log('effect')
+  const personsHook = () => {
+    console.log('effect for fetching persons called')
     directoryService
       .getAll()
       .then(fetchedPersons => {
         console.log('promise fulfilled')
         setPersons(fetchedPersons)
       })
-  }, [])
+  }
+
+  useEffect(personsHook, [refreshHook])
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={normalMessage} isError={false} />
+      <Notification message={errorMessage} isError={true} />
       <Filter filterName={filterName} setFilterName={setFilterName}/>
       <h3>Add a new</h3>
       <PersonForm obj={{addPerson,
