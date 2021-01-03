@@ -42,10 +42,11 @@ const App = () => {
             setTimeout(() => {setNormalMessage(null)}, 5000)
             setPersons(persons.concat(addedPerson))      
             setNewName('')
-            setNewNumber('')})
+            setNewNumber('')
+          })
           .catch(error => {
-            console.log('add error result: ',error)
-            setErrorMessage(`${newName} already exists in the server. Local data has been refreshed.`)       
+            console.log('add error caught: ', error.response.data)
+            setErrorMessage(error.response.data.error)       
             setTimeout(() => {setErrorMessage(null)}, 5000)
             setRefreshHook(refreshHook+1)
         })
@@ -57,10 +58,16 @@ const App = () => {
             .update(persons.find(person => person.name.toLowerCase() === newName.toLowerCase()).id,personObject)
             .then(updatedPerson => {
               console.log('update result: ',updatedPerson)
-              setPersons(persons.filter(person => person.name !== newName).concat(updatedPerson))      
+              setPersons(persons.filter(person => person.name.toLowerCase() !== newName.toLowerCase()).concat(updatedPerson))      
               setNewName('')
               setNewNumber('')
-          })
+            })
+            .catch(error => {
+              console.log('update error caught: ', error.response.data)
+              setErrorMessage(error.response.data.error)       
+              setTimeout(() => {setErrorMessage(null)}, 5000)
+              setRefreshHook(refreshHook+1)
+            })
         }
       }  
     }
@@ -74,7 +81,7 @@ const App = () => {
           console.log('delete result: ',result)
           setPersons(persons.filter(person => person.id !== id))})          
         .catch(error => {
-          console.log('delete error caught: ',error)
+          console.log('delete error caught: ', error)
           setErrorMessage(`Information of ${name} has already been removed from server.`)       
           setTimeout(() => {setErrorMessage(null)}, 5000)
           setPersons(persons.filter(person => person.id !== id))    
@@ -87,8 +94,14 @@ const App = () => {
     directoryService
       .getAll()
       .then(fetchedPersons => {
-        console.log('promise fulfilled')
+        console.log('persons fetched')
         setPersons(fetchedPersons)
+      })
+      .catch(error => {
+        console.log('persons fetch error caught: ',error.response.data)
+        setErrorMessage(error.response.data.error)       
+        setTimeout(() => {setErrorMessage(null)}, 5000)
+        setRefreshHook(refreshHook+1)
       })
   }
 
